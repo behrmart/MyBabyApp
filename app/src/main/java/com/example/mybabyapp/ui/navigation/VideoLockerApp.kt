@@ -33,40 +33,80 @@ import com.example.mybabyapp.data.auth.SessionStore
 import com.example.mybabyapp.data.model.SessionState
 import com.example.mybabyapp.data.model.UserSession
 import com.example.mybabyapp.data.repository.AuthRepository
+import com.example.mybabyapp.data.repository.VideosRepository
 import com.example.mybabyapp.ui.auth.LoginScreen
 import com.example.mybabyapp.ui.auth.LoginViewModel
+import com.example.mybabyapp.ui.gifs.GifsScreen
+import com.example.mybabyapp.ui.videos.MediaDetailScreen
+import com.example.mybabyapp.ui.videos.VideosScreen
 import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
 
 private object AppRoute {
     const val Loading = "loading"
     const val Login = "login"
     const val Home = "home"
+    const val Videos = "videos"
+    const val Gifs = "gifs"
+    const val MediaDetail = "mediaDetail"
+    const val MediaIdArgument = "mediaId"
+    const val MediaDetailPattern = "$MediaDetail/{$MediaIdArgument}"
+
+    fun mediaDetail(mediaId: Int): String = "$MediaDetail/$mediaId"
 }
 
 @Composable
 fun VideoLockerApp(
     sessionStore: SessionStore,
     authRepository: AuthRepository,
+    videosRepository: VideosRepository,
+    okHttpClient: OkHttpClient,
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
     val sessionState by sessionStore.sessionState.collectAsStateWithLifecycle()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
+    val authenticatedRoutes = setOf(
+        AppRoute.Home,
+        AppRoute.Videos,
+        AppRoute.Gifs,
+        AppRoute.MediaDetailPattern
+    )
 
     LaunchedEffect(sessionState, currentRoute) {
-        val targetRoute = when (sessionState) {
-            SessionState.Loading -> AppRoute.Loading
-            SessionState.Unauthenticated -> AppRoute.Login
-            is SessionState.Authenticated -> AppRoute.Home
-        }
-
-        if (currentRoute != targetRoute) {
-            navController.navigate(targetRoute) {
-                popUpTo(navController.graph.findStartDestination().id) {
-                    inclusive = true
+        when (sessionState) {
+            SessionState.Loading -> {
+                if (currentRoute != AppRoute.Loading) {
+                    navController.navigate(AppRoute.Loading) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
                 }
-                launchSingleTop = true
+            }
+
+            SessionState.Unauthenticated -> {
+                if (currentRoute != AppRoute.Login) {
+                    navController.navigate(AppRoute.Login) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
+            }
+
+            is SessionState.Authenticated -> {
+                if (currentRoute !in authenticatedRoutes) {
+                    navController.navigate(AppRoute.Home) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
             }
         }
     }
@@ -99,7 +139,47 @@ fun VideoLockerApp(
             } else {
                 AuthenticatedHomeScreen(
                     session = session,
-                    onLogout = authRepository::logout
+                    onLogout = authRepository::logout,
+                    onOpenVideos = {
+                        navController.navigate(AppRoute.Videos)
+                    },
+                    onOpenGifs = {
+                        navController.navigate(AppRoute.Gifs)
+                    }
+                )
+            }
+        }
+        composable(AppRoute.Videos) {
+            VideosScreen(
+                videosRepository = videosRepository,
+                onBack = navController::navigateUp,
+                onOpenMedia = { mediaId ->
+                    navController.navigate(AppRoute.mediaDetail(mediaId))
+                }
+            )
+        }
+        composable(AppRoute.Gifs) {
+            GifsScreen(
+                videosRepository = videosRepository,
+                onBack = navController::navigateUp,
+                onOpenMedia = { mediaId ->
+                    navController.navigate(AppRoute.mediaDetail(mediaId))
+                }
+            )
+        }
+        composable(AppRoute.MediaDetailPattern) { backStackEntry ->
+            val mediaId = backStackEntry.arguments
+                ?.getString(AppRoute.MediaIdArgument)
+                ?.toIntOrNull()
+
+            if (mediaId == null) {
+                SessionLoadingScreen()
+            } else {
+                MediaDetailScreen(
+                    mediaId = mediaId,
+                    videosRepository = videosRepository,
+                    okHttpClient = okHttpClient,
+                    onBack = navController::navigateUp
                 )
             }
         }
@@ -129,7 +209,9 @@ private fun SessionLoadingScreen() {
 @Composable
 private fun AuthenticatedHomeScreen(
     session: UserSession,
-    onLogout: suspend () -> Unit
+    onLogout: suspend () -> Unit,
+    onOpenVideos: () -> Unit,
+    onOpenGifs: () -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
 
@@ -177,14 +259,11 @@ private fun AuthenticatedHomeScreen(
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Button(
-                onClick = {
-                    coroutineScope.launch {
-                        onLogout()
-                    }
-                }
-            ) {
-                Text(text = stringResource(R.string.logout))
+            Button(onClick = onOpenVideos) {
+                Text(text = stringResource(R.string.open_videos))
+            }
+            Button(onClick = onOpenGifs) {
+                Text(text = stringResource(R.string.open_gifs))
             }
         }
     }

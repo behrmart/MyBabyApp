@@ -21,7 +21,9 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     VideoLockerApp(
                         sessionStore = appContainer.sessionStore,
-                        authRepository = appContainer.authRepository
+                        authRepository = appContainer.authRepository,
+                        videosRepository = appContainer.videosRepository,
+                        okHttpClient = appContainer.okHttpClient
                     )
                 }
             }

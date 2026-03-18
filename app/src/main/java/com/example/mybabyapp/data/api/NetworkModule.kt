@@ -14,19 +14,42 @@ object NetworkModule {
         explicitNulls = false
     }
 
-    fun createAuthApi(
-        baseUrl: String,
-        sessionStore: SessionStore
-    ): AuthApi {
-        val okHttpClient = OkHttpClient.Builder()
+    fun createOkHttpClient(sessionStore: SessionStore): OkHttpClient {
+        return OkHttpClient.Builder()
             .addInterceptor(AuthSessionInterceptor(sessionStore))
             .build()
+    }
 
+    private fun createRetrofit(
+        baseUrl: String,
+        okHttpClient: OkHttpClient
+    ): Retrofit {
         return Retrofit.Builder()
             .baseUrl(baseUrl)
             .client(okHttpClient)
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
+    }
+
+    fun createAuthApi(
+        baseUrl: String,
+        okHttpClient: OkHttpClient
+    ): AuthApi {
+        return createRetrofit(
+            baseUrl = baseUrl,
+            okHttpClient = okHttpClient
+        )
             .create(AuthApi::class.java)
+    }
+
+    fun createVideosApi(
+        baseUrl: String,
+        okHttpClient: OkHttpClient
+    ): VideosApi {
+        return createRetrofit(
+            baseUrl = baseUrl,
+            okHttpClient = okHttpClient
+        )
+            .create(VideosApi::class.java)
     }
 }
