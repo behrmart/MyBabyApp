@@ -1,5 +1,6 @@
 package com.example.mybabyapp.ui.videos
 
+import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -41,7 +43,10 @@ import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
+import coil.ImageLoader
 import coil.compose.AsyncImage
+import coil.decode.GifDecoder
+import coil.decode.ImageDecoderDecoder
 import coil.request.ImageRequest
 import com.example.mybabyapp.R
 import com.example.mybabyapp.data.model.VideoComment
@@ -169,6 +174,9 @@ private fun MediaDetailContent(
                 }
 
                 detail.isGifItem() -> {
+                    LaunchedEffect(detail.id) {
+                        onPlaybackStarted()
+                    }
                     GifPreview(
                         title = detail.title,
                         streamUrl = streamUrl,
@@ -295,6 +303,17 @@ private fun GifPreview(
     okHttpClient: OkHttpClient
 ) {
     val context = LocalContext.current
+    val imageLoader = remember(context) {
+        ImageLoader.Builder(context)
+            .components {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    add(ImageDecoderDecoder.Factory())
+                } else {
+                    add(GifDecoder.Factory())
+                }
+            }
+            .build()
+    }
     val gifState by produceState<GifPreviewState>(
         initialValue = GifPreviewState.Loading,
         key1 = streamUrl,
@@ -345,6 +364,7 @@ private fun GifPreview(
                 model = ImageRequest.Builder(context)
                     .data(currentState.bytes)
                     .build(),
+                imageLoader = imageLoader,
                 contentDescription = title,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
