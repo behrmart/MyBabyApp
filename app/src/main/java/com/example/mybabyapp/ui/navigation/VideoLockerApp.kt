@@ -33,10 +33,13 @@ import com.example.mybabyapp.data.auth.SessionStore
 import com.example.mybabyapp.data.model.SessionState
 import com.example.mybabyapp.data.model.UserSession
 import com.example.mybabyapp.data.repository.AuthRepository
+import com.example.mybabyapp.data.repository.PhotosRepository
 import com.example.mybabyapp.data.repository.VideosRepository
 import com.example.mybabyapp.ui.auth.LoginScreen
 import com.example.mybabyapp.ui.auth.LoginViewModel
 import com.example.mybabyapp.ui.gifs.GifsScreen
+import com.example.mybabyapp.ui.photos.PhotoViewerScreen
+import com.example.mybabyapp.ui.photos.PhotosScreen
 import com.example.mybabyapp.ui.videos.MediaDetailScreen
 import com.example.mybabyapp.ui.videos.VideosScreen
 import kotlinx.coroutines.launch
@@ -46,12 +49,17 @@ private object AppRoute {
     const val Loading = "loading"
     const val Login = "login"
     const val Home = "home"
+    const val Photos = "photos"
     const val Videos = "videos"
     const val Gifs = "gifs"
+    const val PhotoViewer = "photoViewer"
+    const val PhotoIdArgument = "photoId"
+    const val PhotoViewerPattern = "$PhotoViewer/{$PhotoIdArgument}"
     const val MediaDetail = "mediaDetail"
     const val MediaIdArgument = "mediaId"
     const val MediaDetailPattern = "$MediaDetail/{$MediaIdArgument}"
 
+    fun photoViewer(photoId: Int): String = "$PhotoViewer/$photoId"
     fun mediaDetail(mediaId: Int): String = "$MediaDetail/$mediaId"
 }
 
@@ -59,6 +67,7 @@ private object AppRoute {
 fun VideoLockerApp(
     sessionStore: SessionStore,
     authRepository: AuthRepository,
+    photosRepository: PhotosRepository,
     videosRepository: VideosRepository,
     okHttpClient: OkHttpClient,
     modifier: Modifier = Modifier
@@ -69,8 +78,10 @@ fun VideoLockerApp(
     val currentRoute = currentBackStackEntry?.destination?.route
     val authenticatedRoutes = setOf(
         AppRoute.Home,
+        AppRoute.Photos,
         AppRoute.Videos,
         AppRoute.Gifs,
+        AppRoute.PhotoViewerPattern,
         AppRoute.MediaDetailPattern
     )
 
@@ -140,6 +151,9 @@ fun VideoLockerApp(
                 AuthenticatedHomeScreen(
                     session = session,
                     onLogout = authRepository::logout,
+                    onOpenPhotos = {
+                        navController.navigate(AppRoute.Photos)
+                    },
                     onOpenVideos = {
                         navController.navigate(AppRoute.Videos)
                     },
@@ -148,6 +162,16 @@ fun VideoLockerApp(
                     }
                 )
             }
+        }
+        composable(AppRoute.Photos) {
+            PhotosScreen(
+                photosRepository = photosRepository,
+                okHttpClient = okHttpClient,
+                onBack = navController::navigateUp,
+                onOpenPhoto = { photoId ->
+                    navController.navigate(AppRoute.photoViewer(photoId))
+                }
+            )
         }
         composable(AppRoute.Videos) {
             VideosScreen(
@@ -166,6 +190,22 @@ fun VideoLockerApp(
                     navController.navigate(AppRoute.mediaDetail(mediaId))
                 }
             )
+        }
+        composable(AppRoute.PhotoViewerPattern) { backStackEntry ->
+            val photoId = backStackEntry.arguments
+                ?.getString(AppRoute.PhotoIdArgument)
+                ?.toIntOrNull()
+
+            if (photoId == null) {
+                SessionLoadingScreen()
+            } else {
+                PhotoViewerScreen(
+                    photoId = photoId,
+                    photosRepository = photosRepository,
+                    okHttpClient = okHttpClient,
+                    onBack = navController::navigateUp
+                )
+            }
         }
         composable(AppRoute.MediaDetailPattern) { backStackEntry ->
             val mediaId = backStackEntry.arguments
@@ -210,6 +250,7 @@ private fun SessionLoadingScreen() {
 private fun AuthenticatedHomeScreen(
     session: UserSession,
     onLogout: suspend () -> Unit,
+    onOpenPhotos: () -> Unit,
     onOpenVideos: () -> Unit,
     onOpenGifs: () -> Unit
 ) {
@@ -259,6 +300,9 @@ private fun AuthenticatedHomeScreen(
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Button(onClick = onOpenPhotos) {
+                Text(text = stringResource(R.string.open_photos))
+            }
             Button(onClick = onOpenVideos) {
                 Text(text = stringResource(R.string.open_videos))
             }

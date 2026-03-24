@@ -22,6 +22,7 @@ class MainActivity : ComponentActivity() {
                     VideoLockerApp(
                         sessionStore = appContainer.sessionStore,
                         authRepository = appContainer.authRepository,
+                        photosRepository = appContainer.photosRepository,
                         videosRepository = appContainer.videosRepository,
                         okHttpClient = appContainer.okHttpClient
                     )
