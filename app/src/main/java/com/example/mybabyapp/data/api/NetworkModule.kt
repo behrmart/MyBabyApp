@@ -63,4 +63,15 @@ object NetworkModule {
         )
             .create(PhotosApi::class.java)
     }
+
+    fun createServerMediaApi(
+        baseUrl: String,
+        okHttpClient: OkHttpClient
+    ): ServerMediaApi {
+        return createRetrofit(
+            baseUrl = baseUrl,
+            okHttpClient = okHttpClient
+        )
+            .create(ServerMediaApi::class.java)
+    }
 }

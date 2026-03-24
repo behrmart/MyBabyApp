@@ -23,6 +23,7 @@ class MainActivity : ComponentActivity() {
                         sessionStore = appContainer.sessionStore,
                         authRepository = appContainer.authRepository,
                         photosRepository = appContainer.photosRepository,
+                        serverMediaRepository = appContainer.serverMediaRepository,
                         videosRepository = appContainer.videosRepository,
                         okHttpClient = appContainer.okHttpClient
                     )

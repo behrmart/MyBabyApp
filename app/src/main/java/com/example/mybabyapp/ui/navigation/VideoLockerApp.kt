@@ -1,5 +1,6 @@
 package com.example.mybabyapp.ui.navigation
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,12 +35,15 @@ import com.example.mybabyapp.data.model.SessionState
 import com.example.mybabyapp.data.model.UserSession
 import com.example.mybabyapp.data.repository.AuthRepository
 import com.example.mybabyapp.data.repository.PhotosRepository
+import com.example.mybabyapp.data.repository.ServerMediaRepository
 import com.example.mybabyapp.data.repository.VideosRepository
 import com.example.mybabyapp.ui.auth.LoginScreen
 import com.example.mybabyapp.ui.auth.LoginViewModel
 import com.example.mybabyapp.ui.gifs.GifsScreen
 import com.example.mybabyapp.ui.photos.PhotoViewerScreen
 import com.example.mybabyapp.ui.photos.PhotosScreen
+import com.example.mybabyapp.ui.servermedia.ServerMediaDetailScreen
+import com.example.mybabyapp.ui.servermedia.ServerMediaScreen
 import com.example.mybabyapp.ui.videos.MediaDetailScreen
 import com.example.mybabyapp.ui.videos.VideosScreen
 import kotlinx.coroutines.launch
@@ -50,16 +54,24 @@ private object AppRoute {
     const val Login = "login"
     const val Home = "home"
     const val Photos = "photos"
+    const val ServerMedia = "serverMedia"
     const val Videos = "videos"
     const val Gifs = "gifs"
     const val PhotoViewer = "photoViewer"
     const val PhotoIdArgument = "photoId"
     const val PhotoViewerPattern = "$PhotoViewer/{$PhotoIdArgument}"
+    const val ServerMediaDetail = "serverMediaDetail"
+    const val ServerMediaIdArgument = "serverMediaId"
+    const val ServerMediaDetailPattern = "$ServerMediaDetail/{$ServerMediaIdArgument}"
     const val MediaDetail = "mediaDetail"
     const val MediaIdArgument = "mediaId"
     const val MediaDetailPattern = "$MediaDetail/{$MediaIdArgument}"
 
     fun photoViewer(photoId: Int): String = "$PhotoViewer/$photoId"
+    fun serverMediaDetail(serverMediaId: String): String {
+        return "$ServerMediaDetail/${Uri.encode(serverMediaId)}"
+    }
+
     fun mediaDetail(mediaId: Int): String = "$MediaDetail/$mediaId"
 }
 
@@ -68,6 +80,7 @@ fun VideoLockerApp(
     sessionStore: SessionStore,
     authRepository: AuthRepository,
     photosRepository: PhotosRepository,
+    serverMediaRepository: ServerMediaRepository,
     videosRepository: VideosRepository,
     okHttpClient: OkHttpClient,
     modifier: Modifier = Modifier
@@ -79,9 +92,11 @@ fun VideoLockerApp(
     val authenticatedRoutes = setOf(
         AppRoute.Home,
         AppRoute.Photos,
+        AppRoute.ServerMedia,
         AppRoute.Videos,
         AppRoute.Gifs,
         AppRoute.PhotoViewerPattern,
+        AppRoute.ServerMediaDetailPattern,
         AppRoute.MediaDetailPattern
     )
 
@@ -154,6 +169,9 @@ fun VideoLockerApp(
                     onOpenPhotos = {
                         navController.navigate(AppRoute.Photos)
                     },
+                    onOpenServerMedia = {
+                        navController.navigate(AppRoute.ServerMedia)
+                    },
                     onOpenVideos = {
                         navController.navigate(AppRoute.Videos)
                     },
@@ -162,6 +180,15 @@ fun VideoLockerApp(
                     }
                 )
             }
+        }
+        composable(AppRoute.ServerMedia) {
+            ServerMediaScreen(
+                serverMediaRepository = serverMediaRepository,
+                onBack = navController::navigateUp,
+                onOpenMedia = { mediaId ->
+                    navController.navigate(AppRoute.serverMediaDetail(mediaId))
+                }
+            )
         }
         composable(AppRoute.Photos) {
             PhotosScreen(
@@ -202,6 +229,22 @@ fun VideoLockerApp(
                 PhotoViewerScreen(
                     photoId = photoId,
                     photosRepository = photosRepository,
+                    okHttpClient = okHttpClient,
+                    onBack = navController::navigateUp
+                )
+            }
+        }
+        composable(AppRoute.ServerMediaDetailPattern) { backStackEntry ->
+            val mediaId = backStackEntry.arguments
+                ?.getString(AppRoute.ServerMediaIdArgument)
+                ?.let(Uri::decode)
+
+            if (mediaId.isNullOrBlank()) {
+                SessionLoadingScreen()
+            } else {
+                ServerMediaDetailScreen(
+                    mediaId = mediaId,
+                    serverMediaRepository = serverMediaRepository,
                     okHttpClient = okHttpClient,
                     onBack = navController::navigateUp
                 )
@@ -251,6 +294,7 @@ private fun AuthenticatedHomeScreen(
     session: UserSession,
     onLogout: suspend () -> Unit,
     onOpenPhotos: () -> Unit,
+    onOpenServerMedia: () -> Unit,
     onOpenVideos: () -> Unit,
     onOpenGifs: () -> Unit
 ) {
@@ -302,6 +346,9 @@ private fun AuthenticatedHomeScreen(
             )
             Button(onClick = onOpenPhotos) {
                 Text(text = stringResource(R.string.open_photos))
+            }
+            Button(onClick = onOpenServerMedia) {
+                Text(text = stringResource(R.string.open_server_media))
             }
             Button(onClick = onOpenVideos) {
                 Text(text = stringResource(R.string.open_videos))

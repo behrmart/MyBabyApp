@@ -7,6 +7,7 @@ import com.example.mybabyapp.data.auth.DataStoreSessionStore
 import com.example.mybabyapp.data.auth.SessionStore
 import com.example.mybabyapp.data.repository.AuthRepository
 import com.example.mybabyapp.data.repository.PhotosRepository
+import com.example.mybabyapp.data.repository.ServerMediaRepository
 import com.example.mybabyapp.data.repository.VideosRepository
 import okhttp3.OkHttpClient
 
@@ -35,6 +36,14 @@ class AppContainer private constructor(
 
     val photosRepository: PhotosRepository = PhotosRepository(
         photosApi = NetworkModule.createPhotosApi(
+            baseUrl = BuildConfig.BASE_URL,
+            okHttpClient = okHttpClient
+        ),
+        baseUrl = BuildConfig.BASE_URL
+    )
+
+    val serverMediaRepository: ServerMediaRepository = ServerMediaRepository(
+        serverMediaApi = NetworkModule.createServerMediaApi(
             baseUrl = BuildConfig.BASE_URL,
             okHttpClient = okHttpClient
         ),
