@@ -74,4 +74,15 @@ object NetworkModule {
         )
             .create(ServerMediaApi::class.java)
     }
+
+    fun createAdminApi(
+        baseUrl: String,
+        okHttpClient: OkHttpClient
+    ): AdminApi {
+        return createRetrofit(
+            baseUrl = baseUrl,
+            okHttpClient = okHttpClient
+        )
+            .create(AdminApi::class.java)
+    }
 }

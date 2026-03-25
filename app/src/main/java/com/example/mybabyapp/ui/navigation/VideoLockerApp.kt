@@ -32,11 +32,14 @@ import androidx.navigation.compose.rememberNavController
 import com.example.mybabyapp.R
 import com.example.mybabyapp.data.auth.SessionStore
 import com.example.mybabyapp.data.model.SessionState
+import com.example.mybabyapp.data.model.UserRole
 import com.example.mybabyapp.data.model.UserSession
+import com.example.mybabyapp.data.repository.AdminRepository
 import com.example.mybabyapp.data.repository.AuthRepository
 import com.example.mybabyapp.data.repository.PhotosRepository
 import com.example.mybabyapp.data.repository.ServerMediaRepository
 import com.example.mybabyapp.data.repository.VideosRepository
+import com.example.mybabyapp.ui.admin.AdminScreen
 import com.example.mybabyapp.ui.auth.LoginScreen
 import com.example.mybabyapp.ui.auth.LoginViewModel
 import com.example.mybabyapp.ui.gifs.GifsScreen
@@ -46,6 +49,7 @@ import com.example.mybabyapp.ui.servermedia.ServerMediaDetailScreen
 import com.example.mybabyapp.ui.servermedia.ServerMediaScreen
 import com.example.mybabyapp.ui.videos.MediaDetailScreen
 import com.example.mybabyapp.ui.videos.VideosScreen
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 
@@ -53,6 +57,7 @@ private object AppRoute {
     const val Loading = "loading"
     const val Login = "login"
     const val Home = "home"
+    const val Admin = "admin"
     const val Photos = "photos"
     const val ServerMedia = "serverMedia"
     const val Videos = "videos"
@@ -78,6 +83,7 @@ private object AppRoute {
 @Composable
 fun VideoLockerApp(
     sessionStore: SessionStore,
+    adminRepository: AdminRepository,
     authRepository: AuthRepository,
     photosRepository: PhotosRepository,
     serverMediaRepository: ServerMediaRepository,
@@ -91,6 +97,7 @@ fun VideoLockerApp(
     val currentRoute = currentBackStackEntry?.destination?.route
     val authenticatedRoutes = setOf(
         AppRoute.Home,
+        AppRoute.Admin,
         AppRoute.Photos,
         AppRoute.ServerMedia,
         AppRoute.Videos,
@@ -166,6 +173,13 @@ fun VideoLockerApp(
                 AuthenticatedHomeScreen(
                     session = session,
                     onLogout = authRepository::logout,
+                    onOpenAdmin = if (session.role == UserRole.ADMIN) {
+                        {
+                            navController.navigate(AppRoute.Admin)
+                        }
+                    } else {
+                        null
+                    },
                     onOpenPhotos = {
                         navController.navigate(AppRoute.Photos)
                     },
@@ -179,6 +193,36 @@ fun VideoLockerApp(
                         navController.navigate(AppRoute.Gifs)
                     }
                 )
+            }
+        }
+        composable(AppRoute.Admin) {
+            val session = (sessionState as? SessionState.Authenticated)?.session
+            when {
+                session == null -> {
+                    SessionLoadingScreen()
+                }
+
+                session.role != UserRole.ADMIN -> {
+                    AdminAccessDeniedScreen(
+                        onNavigateHome = {
+                            navController.navigate(AppRoute.Home) {
+                                popUpTo(AppRoute.Home) {
+                                    inclusive = false
+                                }
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
+
+                else -> {
+                    AdminScreen(
+                        adminRepository = adminRepository,
+                        photosRepository = photosRepository,
+                        videosRepository = videosRepository,
+                        onBack = navController::navigateUp
+                    )
+                }
             }
         }
         composable(AppRoute.ServerMedia) {
@@ -293,6 +337,7 @@ private fun SessionLoadingScreen() {
 private fun AuthenticatedHomeScreen(
     session: UserSession,
     onLogout: suspend () -> Unit,
+    onOpenAdmin: (() -> Unit)?,
     onOpenPhotos: () -> Unit,
     onOpenServerMedia: () -> Unit,
     onOpenVideos: () -> Unit,
@@ -344,6 +389,11 @@ private fun AuthenticatedHomeScreen(
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (onOpenAdmin != null) {
+                Button(onClick = onOpenAdmin) {
+                    Text(text = stringResource(R.string.open_admin))
+                }
+            }
             Button(onClick = onOpenPhotos) {
                 Text(text = stringResource(R.string.open_photos))
             }
@@ -356,6 +406,36 @@ private fun AuthenticatedHomeScreen(
             Button(onClick = onOpenGifs) {
                 Text(text = stringResource(R.string.open_gifs))
             }
+        }
+    }
+}
+
+@Composable
+private fun AdminAccessDeniedScreen(
+    onNavigateHome: () -> Unit
+) {
+    LaunchedEffect(Unit) {
+        delay(1_000)
+        onNavigateHome()
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.admin_access_denied_title),
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Text(
+                text = stringResource(R.string.admin_access_denied_body),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

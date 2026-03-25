@@ -5,6 +5,7 @@ import com.example.mybabyapp.BuildConfig
 import com.example.mybabyapp.data.api.NetworkModule
 import com.example.mybabyapp.data.auth.DataStoreSessionStore
 import com.example.mybabyapp.data.auth.SessionStore
+import com.example.mybabyapp.data.repository.AdminRepository
 import com.example.mybabyapp.data.repository.AuthRepository
 import com.example.mybabyapp.data.repository.PhotosRepository
 import com.example.mybabyapp.data.repository.ServerMediaRepository
@@ -48,6 +49,14 @@ class AppContainer private constructor(
             okHttpClient = okHttpClient
         ),
         baseUrl = BuildConfig.BASE_URL
+    )
+
+    val adminRepository: AdminRepository = AdminRepository(
+        adminApi = NetworkModule.createAdminApi(
+            baseUrl = BuildConfig.BASE_URL,
+            okHttpClient = okHttpClient
+        ),
+        contentResolver = appContext.contentResolver
     )
 
     companion object {
