@@ -3,7 +3,7 @@ package com.example.mybabyapp.ui.servermedia
 import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,12 +12,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -49,13 +46,15 @@ import com.example.mybabyapp.data.model.isAudioType
 import com.example.mybabyapp.data.model.isImageType
 import com.example.mybabyapp.data.model.isVideoType
 import com.example.mybabyapp.data.repository.ServerMediaRepository
+import com.example.mybabyapp.ui.components.VideoLockerMediaSurface
+import com.example.mybabyapp.ui.components.VideoLockerScreenScaffold
+import com.example.mybabyapp.ui.components.VideoLockerSectionCard
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServerMediaDetailScreen(
     mediaId: String,
@@ -74,19 +73,14 @@ fun ServerMediaDetailScreen(
     val item = uiState.item
     val errorMessage = uiState.errorMessage
 
-    Scaffold(
+    VideoLockerScreenScaffold(
+        title = item?.name ?: stringResource(R.string.server_media_detail_title),
+        onBack = onBack,
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(text = item?.name ?: stringResource(R.string.server_media_detail_title))
-                },
-                navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text(text = stringResource(R.string.back))
-                    }
-                }
-            )
+        actions = {
+            TextButton(onClick = viewModel::refresh) {
+                Text(text = stringResource(R.string.retry))
+            }
         }
     ) { innerPadding ->
         when {
@@ -94,28 +88,34 @@ fun ServerMediaDetailScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding),
+                        .padding(innerPadding)
+                        .padding(20.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    VideoLockerSectionCard {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
                 }
             }
 
             errorMessage != null && item == null -> {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
-                        .padding(horizontal = 24.dp, vertical = 32.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .padding(20.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = errorMessage,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Button(onClick = viewModel::refresh) {
-                        Text(text = stringResource(R.string.retry))
+                    VideoLockerSectionCard {
+                        Text(
+                            text = errorMessage,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Button(onClick = viewModel::refresh) {
+                            Text(text = stringResource(R.string.retry))
+                        }
                     }
                 }
             }
@@ -140,53 +140,66 @@ private fun ServerMediaDetailContent(
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(20.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         item {
-            when {
-                item.isVideoType() -> {
-                    AuthenticatedServerMediaPlayer(
-                        streamUrl = streamUrl,
-                        okHttpClient = okHttpClient,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(16f / 9f)
-                    )
-                }
+            VideoLockerMediaSurface(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                when {
+                    item.isVideoType() -> {
+                        AuthenticatedServerMediaPlayer(
+                            streamUrl = streamUrl,
+                            okHttpClient = okHttpClient,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(16f / 9f)
+                        )
+                    }
 
-                item.isAudioType() -> {
-                    AuthenticatedServerMediaPlayer(
-                        streamUrl = streamUrl,
-                        okHttpClient = okHttpClient,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 120.dp)
-                    )
-                }
+                    item.isAudioType() -> {
+                        AuthenticatedServerMediaPlayer(
+                            streamUrl = streamUrl,
+                            okHttpClient = okHttpClient,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 140.dp)
+                        )
+                    }
 
-                item.isImageType() -> {
-                    AuthenticatedServerMediaImage(
-                        title = item.name,
-                        mimeType = item.mimeType,
-                        streamUrl = streamUrl,
-                        okHttpClient = okHttpClient
-                    )
-                }
+                    item.isImageType() -> {
+                        AuthenticatedServerMediaImage(
+                            title = item.name,
+                            mimeType = item.mimeType,
+                            streamUrl = streamUrl,
+                            okHttpClient = okHttpClient,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 280.dp)
+                        )
+                    }
 
-                else -> {
-                    Text(
-                        text = stringResource(R.string.server_media_unsupported),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    else -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 220.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.server_media_unsupported),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
                 }
             }
         }
 
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            VideoLockerSectionCard {
                 Text(
                     text = item.name,
                     style = MaterialTheme.typography.headlineSmall
@@ -198,19 +211,23 @@ private fun ServerMediaDetailContent(
                 )
                 Text(
                     text = stringResource(R.string.server_media_type, item.type),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = stringResource(R.string.media_mime_type, item.mimeType),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = stringResource(R.string.server_media_size, item.size),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = stringResource(R.string.server_media_modified_at, item.modifiedAt),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -222,7 +239,8 @@ private fun AuthenticatedServerMediaImage(
     title: String,
     mimeType: String,
     streamUrl: String,
-    okHttpClient: OkHttpClient
+    okHttpClient: OkHttpClient,
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val imageLoader = remember(context) {
@@ -265,9 +283,7 @@ private fun AuthenticatedServerMediaImage(
     when (val currentState = imageState) {
         ServerMediaImageState.Loading -> {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 240.dp),
+                modifier = modifier,
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
@@ -275,10 +291,15 @@ private fun AuthenticatedServerMediaImage(
         }
 
         ServerMediaImageState.Error -> {
-            Text(
-                text = stringResource(R.string.server_media_image_unavailable),
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Box(
+                modifier = modifier,
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = stringResource(R.string.server_media_image_unavailable),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
 
         is ServerMediaImageState.Success -> {
@@ -289,9 +310,7 @@ private fun AuthenticatedServerMediaImage(
                 imageLoader = imageLoader,
                 contentDescription = title,
                 contentScale = if (mimeType == "image/gif") ContentScale.Fit else ContentScale.Fit,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 240.dp)
+                modifier = modifier
             )
         }
     }

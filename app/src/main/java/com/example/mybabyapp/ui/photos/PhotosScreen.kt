@@ -18,16 +18,13 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -44,6 +41,8 @@ import com.example.mybabyapp.R
 import com.example.mybabyapp.data.model.PhotoAlbum
 import com.example.mybabyapp.data.model.PhotoSummary
 import com.example.mybabyapp.data.repository.PhotosRepository
+import com.example.mybabyapp.ui.components.VideoLockerScreenScaffold
+import com.example.mybabyapp.ui.components.VideoLockerSectionCard
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -75,7 +74,6 @@ fun PhotosScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PhotosContent(
     uiState: PhotosUiState,
@@ -87,19 +85,14 @@ private fun PhotosContent(
     onOpenPhoto: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Scaffold(
+    VideoLockerScreenScaffold(
+        title = stringResource(R.string.photos_title),
+        onBack = onBack,
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(text = stringResource(R.string.photos_title))
-                },
-                navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text(text = stringResource(R.string.back))
-                    }
-                }
-            )
+        actions = {
+            TextButton(onClick = onRetry) {
+                Text(text = stringResource(R.string.retry))
+            }
         }
     ) { innerPadding ->
         when {
@@ -107,28 +100,34 @@ private fun PhotosContent(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding),
+                        .padding(innerPadding)
+                        .padding(20.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    VideoLockerSectionCard {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
                 }
             }
 
             uiState.errorMessage != null && uiState.albums.isEmpty() && uiState.photos.isEmpty() -> {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
-                        .padding(horizontal = 24.dp, vertical = 32.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .padding(20.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = uiState.errorMessage,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Button(onClick = onRetry) {
-                        Text(text = stringResource(R.string.retry))
+                    VideoLockerSectionCard {
+                        Text(
+                            text = uiState.errorMessage,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Button(onClick = onRetry) {
+                            Text(text = stringResource(R.string.retry))
+                        }
                     }
                 }
             }
@@ -147,17 +146,22 @@ private fun PhotosContent(
 
                     if (uiState.isLoading) {
                         LinearProgressIndicator(
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp)
                         )
                     }
 
                     uiState.errorMessage?.let { errorMessage ->
-                        Text(
-                            text = errorMessage,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        VideoLockerSectionCard(
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                        ) {
+                            Text(
+                                text = errorMessage,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     }
 
                     if (uiState.photos.isEmpty()) {
@@ -165,13 +169,15 @@ private fun PhotosContent(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxWidth()
-                                .padding(horizontal = 24.dp),
+                                .padding(horizontal = 20.dp, vertical = 12.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = stringResource(R.string.photos_empty),
-                                style = MaterialTheme.typography.bodyLarge
-                            )
+                            VideoLockerSectionCard {
+                                Text(
+                                    text = stringResource(R.string.photos_empty),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
                         }
                     } else {
                         PhotoGrid(
@@ -196,7 +202,7 @@ private fun AlbumFilterRow(
 ) {
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {
@@ -236,9 +242,9 @@ private fun PhotoGrid(
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         items(
             items = photos,
@@ -261,7 +267,7 @@ private fun PhotoGridItem(
     okHttpClient: OkHttpClient,
     onOpenPhoto: (Int) -> Unit
 ) {
-    Card(
+    ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onOpenPhoto(photo.id) }
@@ -278,7 +284,7 @@ private fun PhotoGridItem(
             )
 
             Column(
-                modifier = Modifier.padding(12.dp),
+                modifier = Modifier.padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(

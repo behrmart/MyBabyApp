@@ -5,15 +5,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,6 +43,8 @@ import com.example.mybabyapp.data.repository.VideosRepository
 import com.example.mybabyapp.ui.admin.AdminScreen
 import com.example.mybabyapp.ui.auth.LoginScreen
 import com.example.mybabyapp.ui.auth.LoginViewModel
+import com.example.mybabyapp.ui.components.VideoLockerScreenScaffold
+import com.example.mybabyapp.ui.components.VideoLockerSectionCard
 import com.example.mybabyapp.ui.gifs.GifsScreen
 import com.example.mybabyapp.ui.photos.PhotoViewerScreen
 import com.example.mybabyapp.ui.photos.PhotosScreen
@@ -73,6 +76,7 @@ private object AppRoute {
     const val MediaDetailPattern = "$MediaDetail/{$MediaIdArgument}"
 
     fun photoViewer(photoId: Int): String = "$PhotoViewer/$photoId"
+
     fun serverMediaDetail(serverMediaId: String): String {
         return "$ServerMediaDetail/${Uri.encode(serverMediaId)}"
     }
@@ -316,23 +320,26 @@ fun VideoLockerApp(
 @Composable
 private fun SessionLoadingScreen() {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        VideoLockerSectionCard(
+            modifier = Modifier.widthIn(max = 320.dp)
         ) {
-            CircularProgressIndicator()
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
             Text(
                 text = stringResource(R.string.session_loading),
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AuthenticatedHomeScreen(
     session: UserSession,
@@ -345,66 +352,98 @@ private fun AuthenticatedHomeScreen(
 ) {
     val coroutineScope = rememberCoroutineScope()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(text = stringResource(R.string.home_title))
-                },
-                actions = {
-                    TextButton(
-                        onClick = {
-                            coroutineScope.launch {
-                                onLogout()
-                            }
-                        }
-                    ) {
-                        Text(text = stringResource(R.string.logout))
+    VideoLockerScreenScaffold(
+        title = stringResource(R.string.home_title),
+        actions = {
+            TextButton(
+                onClick = {
+                    coroutineScope.launch {
+                        onLogout()
                     }
                 }
-            )
+            ) {
+                Text(text = stringResource(R.string.logout))
+            }
         }
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 24.dp, vertical = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(20.dp),
+            contentAlignment = Alignment.TopCenter
         ) {
-            Text(
-                text = stringResource(R.string.home_heading),
-                style = MaterialTheme.typography.headlineSmall
-            )
-            Text(
-                text = stringResource(R.string.signed_in_as, session.username),
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Text(
-                text = stringResource(R.string.role_label, session.role.name),
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Text(
-                text = stringResource(R.string.home_body),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            if (onOpenAdmin != null) {
-                Button(onClick = onOpenAdmin) {
-                    Text(text = stringResource(R.string.open_admin))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 560.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                VideoLockerSectionCard {
+                    Text(
+                        text = stringResource(R.string.home_heading),
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    Text(
+                        text = stringResource(R.string.signed_in_as, session.username),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = stringResource(R.string.role_label, session.role.name),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = stringResource(R.string.home_body),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-            }
-            Button(onClick = onOpenPhotos) {
-                Text(text = stringResource(R.string.open_photos))
-            }
-            Button(onClick = onOpenServerMedia) {
-                Text(text = stringResource(R.string.open_server_media))
-            }
-            Button(onClick = onOpenVideos) {
-                Text(text = stringResource(R.string.open_videos))
-            }
-            Button(onClick = onOpenGifs) {
-                Text(text = stringResource(R.string.open_gifs))
+
+                VideoLockerSectionCard {
+                    if (onOpenAdmin != null) {
+                        Button(
+                            onClick = onOpenAdmin,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 52.dp)
+                        ) {
+                            Text(text = stringResource(R.string.open_admin))
+                        }
+                    }
+                    FilledTonalButton(
+                        onClick = onOpenPhotos,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 52.dp)
+                    ) {
+                        Text(text = stringResource(R.string.open_photos))
+                    }
+                    FilledTonalButton(
+                        onClick = onOpenServerMedia,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 52.dp)
+                    ) {
+                        Text(text = stringResource(R.string.open_server_media))
+                    }
+                    FilledTonalButton(
+                        onClick = onOpenVideos,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 52.dp)
+                    ) {
+                        Text(text = stringResource(R.string.open_videos))
+                    }
+                    FilledTonalButton(
+                        onClick = onOpenGifs,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 52.dp)
+                    ) {
+                        Text(text = stringResource(R.string.open_gifs))
+                    }
+                }
             }
         }
     }
@@ -420,12 +459,13 @@ private fun AdminAccessDeniedScreen(
     }
 
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        VideoLockerSectionCard(
+            modifier = Modifier.widthIn(max = 360.dp)
         ) {
             Text(
                 text = stringResource(R.string.admin_access_denied_title),

@@ -13,15 +13,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -35,6 +32,8 @@ import com.example.mybabyapp.data.model.ServerMediaFilter
 import com.example.mybabyapp.data.model.ServerMediaItem
 import com.example.mybabyapp.data.model.matchesFilter
 import com.example.mybabyapp.data.repository.ServerMediaRepository
+import com.example.mybabyapp.ui.components.VideoLockerScreenScaffold
+import com.example.mybabyapp.ui.components.VideoLockerSectionCard
 
 @Composable
 fun ServerMediaScreen(
@@ -62,7 +61,6 @@ fun ServerMediaScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ServerMediaContent(
     uiState: ServerMediaUiState,
@@ -73,19 +71,14 @@ private fun ServerMediaContent(
     onOpenMedia: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Scaffold(
+    VideoLockerScreenScaffold(
+        title = stringResource(R.string.server_media_title),
+        onBack = onBack,
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(text = stringResource(R.string.server_media_title))
-                },
-                navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text(text = stringResource(R.string.back))
-                    }
-                }
-            )
+        actions = {
+            TextButton(onClick = onRetry) {
+                Text(text = stringResource(R.string.retry))
+            }
         }
     ) { innerPadding ->
         when {
@@ -93,28 +86,34 @@ private fun ServerMediaContent(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding),
+                        .padding(innerPadding)
+                        .padding(20.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    VideoLockerSectionCard {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
                 }
             }
 
             uiState.errorMessage != null && uiState.items.isEmpty() -> {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
-                        .padding(horizontal = 24.dp, vertical = 32.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .padding(20.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = uiState.errorMessage,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Button(onClick = onRetry) {
-                        Text(text = stringResource(R.string.retry))
+                    VideoLockerSectionCard {
+                        Text(
+                            text = uiState.errorMessage,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Button(onClick = onRetry) {
+                            Text(text = stringResource(R.string.retry))
+                        }
                     }
                 }
             }
@@ -131,12 +130,15 @@ private fun ServerMediaContent(
                     )
 
                     uiState.errorMessage?.let { errorMessage ->
-                        Text(
-                            text = errorMessage,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        VideoLockerSectionCard(
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                        ) {
+                            Text(
+                                text = errorMessage,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     }
 
                     when {
@@ -155,8 +157,8 @@ private fun ServerMediaContent(
                         else -> {
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
                             ) {
                                 items(
                                     items = filteredItems,
@@ -183,7 +185,7 @@ private fun ServerMediaFilterRow(
 ) {
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(ServerMediaFilter.entries) { filter ->
@@ -203,13 +205,15 @@ private fun ServerMediaEmptyState(message: String) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = 20.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyLarge
-        )
+        VideoLockerSectionCard {
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
     }
 }
 
@@ -218,14 +222,14 @@ private fun ServerMediaListItem(
     item: ServerMediaItem,
     onOpenMedia: (String) -> Unit
 ) {
-    Card(
+    ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onOpenMedia(item.id) }
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
                 text = item.name,
@@ -238,19 +242,23 @@ private fun ServerMediaListItem(
             )
             Text(
                 text = stringResource(R.string.server_media_type, item.type),
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = stringResource(R.string.media_mime_type, item.mimeType),
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = stringResource(R.string.server_media_size, item.size),
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = stringResource(R.string.server_media_modified_at, item.modifiedAt),
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

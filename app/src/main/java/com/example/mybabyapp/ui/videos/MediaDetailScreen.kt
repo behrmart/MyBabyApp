@@ -4,6 +4,7 @@ import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,13 +14,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -54,12 +52,14 @@ import com.example.mybabyapp.data.model.VideoDetail
 import com.example.mybabyapp.data.model.isGifItem
 import com.example.mybabyapp.data.model.isVideoItem
 import com.example.mybabyapp.data.repository.VideosRepository
+import com.example.mybabyapp.ui.components.VideoLockerMediaSurface
+import com.example.mybabyapp.ui.components.VideoLockerScreenScaffold
+import com.example.mybabyapp.ui.components.VideoLockerSectionCard
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MediaDetailScreen(
     mediaId: Int,
@@ -78,19 +78,14 @@ fun MediaDetailScreen(
     val detail = uiState.detail
     val errorMessage = uiState.errorMessage
 
-    Scaffold(
+    VideoLockerScreenScaffold(
+        title = detail?.title ?: stringResource(R.string.media_detail_title),
+        onBack = onBack,
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(text = detail?.title ?: stringResource(R.string.media_detail_title))
-                },
-                navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text(text = stringResource(R.string.back))
-                    }
-                }
-            )
+        actions = {
+            TextButton(onClick = viewModel::refresh) {
+                Text(text = stringResource(R.string.retry))
+            }
         }
     ) { innerPadding ->
         when {
@@ -98,28 +93,34 @@ fun MediaDetailScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding),
+                        .padding(innerPadding)
+                        .padding(20.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    VideoLockerSectionCard {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
                 }
             }
 
             errorMessage != null && detail == null -> {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
-                        .padding(horizontal = 24.dp, vertical = 32.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .padding(20.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = errorMessage,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Button(onClick = viewModel::refresh) {
-                        Text(text = stringResource(R.string.retry))
+                    VideoLockerSectionCard {
+                        Text(
+                            text = errorMessage,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Button(onClick = viewModel::refresh) {
+                            Text(text = stringResource(R.string.retry))
+                        }
                     }
                 }
             }
@@ -158,36 +159,45 @@ private fun MediaDetailContent(
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(20.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         item {
-            when {
-                detail.isVideoItem() -> {
-                    AuthenticatedVideoPlayer(
-                        streamUrl = streamUrl,
-                        okHttpClient = okHttpClient,
-                        onPlaybackStarted = onPlaybackStarted
-                    )
-                }
-
-                detail.isGifItem() -> {
-                    LaunchedEffect(detail.id) {
-                        onPlaybackStarted()
+            VideoLockerMediaSurface(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                when {
+                    detail.isVideoItem() -> {
+                        AuthenticatedVideoPlayer(
+                            streamUrl = streamUrl,
+                            okHttpClient = okHttpClient,
+                            onPlaybackStarted = onPlaybackStarted,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(16f / 9f)
+                        )
                     }
-                    GifPreview(
-                        title = detail.title,
-                        streamUrl = streamUrl,
-                        okHttpClient = okHttpClient
-                    )
+
+                    detail.isGifItem() -> {
+                        LaunchedEffect(detail.id) {
+                            onPlaybackStarted()
+                        }
+                        GifPreview(
+                            title = detail.title,
+                            streamUrl = streamUrl,
+                            okHttpClient = okHttpClient,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 280.dp)
+                        )
+                    }
                 }
             }
         }
 
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            VideoLockerSectionCard {
                 Text(
                     text = detail.title,
                     style = MaterialTheme.typography.headlineSmall
@@ -203,21 +213,24 @@ private fun MediaDetailContent(
                     }
                 Text(
                     text = stringResource(R.string.media_views, detail.views),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = stringResource(R.string.media_mime_type, detail.mimeType),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = stringResource(R.string.media_created_at, detail.createdAt),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            VideoLockerSectionCard {
                 Text(
                     text = stringResource(R.string.add_comment_title),
                     style = MaterialTheme.typography.titleMedium
@@ -239,7 +252,8 @@ private fun MediaDetailContent(
                 }
                 Button(
                     onClick = onSubmitComment,
-                    enabled = !isSubmittingComment
+                    enabled = !isSubmittingComment,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         text = if (isSubmittingComment) {
@@ -255,16 +269,18 @@ private fun MediaDetailContent(
         item {
             Text(
                 text = stringResource(R.string.comments_title),
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleLarge
             )
         }
 
         if (comments.isEmpty()) {
             item {
-                Text(
-                    text = stringResource(R.string.no_comments),
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                VideoLockerSectionCard {
+                    Text(
+                        text = stringResource(R.string.no_comments),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
         } else {
             items(
@@ -279,7 +295,7 @@ private fun MediaDetailContent(
 
 @Composable
 private fun CommentItem(comment: VideoComment) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    VideoLockerSectionCard {
         Text(
             text = comment.username,
             style = MaterialTheme.typography.titleSmall
@@ -300,7 +316,8 @@ private fun CommentItem(comment: VideoComment) {
 private fun GifPreview(
     title: String,
     streamUrl: String,
-    okHttpClient: OkHttpClient
+    okHttpClient: OkHttpClient,
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val imageLoader = remember(context) {
@@ -343,9 +360,7 @@ private fun GifPreview(
     when (val currentState = gifState) {
         GifPreviewState.Loading -> {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 240.dp),
+                modifier = modifier,
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
@@ -353,10 +368,15 @@ private fun GifPreview(
         }
 
         GifPreviewState.Error -> {
-            Text(
-                text = stringResource(R.string.gif_preview_unavailable),
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Box(
+                modifier = modifier,
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = stringResource(R.string.gif_preview_unavailable),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
 
         is GifPreviewState.Success -> {
@@ -367,9 +387,7 @@ private fun GifPreview(
                 imageLoader = imageLoader,
                 contentDescription = title,
                 contentScale = ContentScale.Fit,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 240.dp)
+                modifier = modifier
             )
         }
     }
@@ -379,7 +397,8 @@ private fun GifPreview(
 private fun AuthenticatedVideoPlayer(
     streamUrl: String,
     okHttpClient: OkHttpClient,
-    onPlaybackStarted: () -> Unit
+    onPlaybackStarted: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val currentOnPlaybackStarted by rememberUpdatedState(onPlaybackStarted)
@@ -424,9 +443,7 @@ private fun AuthenticatedVideoPlayer(
                 player = exoPlayer
             }
         },
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(16f / 9f),
+        modifier = modifier,
         update = { playerView ->
             playerView.player = exoPlayer
         }

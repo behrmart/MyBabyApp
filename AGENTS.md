@@ -145,3 +145,13 @@ After edits:
 - Registration flow
 - Tablet-specific optimizations
 - Search, favorites, or download features
+
+## UI polish rules
+- Use Material 3 styling consistently
+- Prefer a dark-first visual design for this app
+- Keep navigation and data flow unchanged unless required for fullscreen media behavior
+- Fullscreen / immersive mode is allowed only for video detail and photo viewer screens
+- Do not hide system bars on normal list or admin screens
+- Support portrait and landscape layouts for media screens
+- Do not hard-lock the whole app orientation
+- Keep UI changes incremental and reviewable
